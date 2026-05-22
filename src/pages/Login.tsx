@@ -6,14 +6,16 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "./store/useAuthStore"; 
 import Input from "../component/ui/Input";
 
+// 1. Ubah tipe data menjadi nim
 type FormData = {
-  email: string;
+  nim: string;
   password: string;
 };
 
+// 2. Update schema validasi
 const schema = z.object({
-  email: z.string().email("Format email tidak valid").min(1, "Email harus diisi"),
-  password: z.string().min(8, "Password minimal harus 8 karakter"),
+  nim: z.string().min(1, "NIM harus diisi"),
+  password: z.string().min(1, "Password harus diisi"),
 });
 
 export default function Login() {
@@ -28,21 +30,17 @@ export default function Login() {
   const onSubmit = async (data: FormData) => {
     setIsLoading(true);
     
-    // Trik modern: Mengganti setTimeout jadul agar bisa sinkron dengan async/await
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    // 3. Langsung panggil fungsi login dari zustand (ke backend)
+    // Tidak perlu lagi if-else untuk email/password hardcoded!
+    const success = await login(data.nim, data.password);
     
     setIsLoading(false);
     
-    // Logika pengecekan email dan password statis
-    if (
-      data.email === "zahrameidinah05@gmail.com" && 
-      data.password === "24090001"
-    ) {
+    if (success) {
       alert("Login Berhasil!");
-      await login(data.email, data.password); 
-      navigate("/dashboard"); // Ini dijamin langsung jalan lancar pindah halaman!
+      navigate("/dashboard"); 
     } else {
-      alert("Email atau password salah! Silakan coba lagi.");
+      alert("NIM atau password salah! Silakan coba lagi.");
     }
   };
 
@@ -50,16 +48,17 @@ export default function Login() {
     <div className="w-full flex flex-col items-center">
       <div className="text-center mb-10">
         <h1 className="text-4xl font-bold text-[#7B1D3F]">Selamat Datang!</h1>
-        <p className="text-gray-400 mt-3 text-base">Silakan login untuk melanjutkan</p>
+        <p className="text-gray-400 mt-3 text-base">Silakan login menggunakan NIM</p>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="w-full space-y-6" noValidate>
+        {/* Pastikan name="nim" sesuai dengan register data */}
         <Input 
-          label="Email" 
-          name="email" 
+          label="NIM" 
+          name="nim" 
           register={register} 
-          error={errors.email?.message}
-          placeholder="email@anda.com"
+          error={errors.nim?.message}
+          placeholder="Masukkan NIM Anda"
         />
 
         <Input 
@@ -79,18 +78,6 @@ export default function Login() {
           >
             {isLoading ? "Memproses..." : "Login"}
           </button>
-
-          <button 
-            type="button"
-            onClick={() => navigate("/")}
-            className="w-full bg-white text-[#7B1D3F] py-4 rounded-xl font-bold border-2 border-[#7B1D3F] hover:bg-rose-50 transition-all shadow-sm"
-          >
-            Kembali ke Beranda
-          </button>
-        </div>
-
-        <div className="text-sm text-center text-slate-500 pt-2">
-          Belum punya akun? <Link to="/register" className="text-[#7B1D3F] font-bold hover:underline">Daftar</Link>
         </div>
       </form>
     </div>
