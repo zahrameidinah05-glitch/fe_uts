@@ -10,7 +10,7 @@ interface CategoryItem {
 interface SpeakerItem {
   id: string;
   name: string;
-  job: string;
+  role: string; 
 }
 
 interface EventItem {
