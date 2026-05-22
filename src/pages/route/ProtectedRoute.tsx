@@ -14,7 +14,7 @@ export default function ProtectedRoute() {
 
     // JIKA SUDAH SELESAI LOADING DAN TIDAK LOGIN, BARU KE LOGIN
     if (!isAuthenticated) {
-        return <Navigate to="/login" replace />;
+        return <Navigate to="/dashboard" replace />;
     }
 
     // JIKA LOGIN, MASUK DASHBOARD

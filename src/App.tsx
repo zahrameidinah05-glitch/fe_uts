@@ -49,18 +49,6 @@ function App() {
           <Route path="/register" element={<Register />} />
         </Route>
 
-        <Routes>
-    <Route path="/login" element={<Login />} />
-    
-      {/* Rute Parent */}
-      <Route element={<ProtectedRoute />}>
-          {/* Rute Anak: Hapus tanda '/' di depan dashboard */}
-          <Route path="dashboard" element={<Dashboard />} /> 
-          {/* Atau kalau rute utamanya memang ingin di /dashboard, cukup gunakan path kosong */}
-          {/* <Route index element={<Dashboard />} /> */}
-      </Route>
-      </Routes>
-
         {/* ================= PROTECTED (Dashboard Area) ================= */}
         <Route element={<ProtectedRoute />}>
           <Route path="/dashboard" element={<DashboardLayout />}>
