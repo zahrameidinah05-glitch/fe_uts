@@ -28,6 +28,8 @@ interface EventItem {
 interface AuthState {
   isAuthenticated: boolean;
   user: string | null;
+  _hasHydrated: boolean; // PENTING: Untuk sinkronisasi storage
+  setHasHydrated: (state: boolean) => void;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
 
@@ -59,12 +61,15 @@ export const useAuthStore = create<AuthState>()(
     (set, get) => ({
       isAuthenticated: false,
       user: null,
+      _hasHydrated: false,
+      setHasHydrated: (state) => set({ _hasHydrated: state }),
+      
       categories: [],
       speakers: [],
       events: [],
       isLoading: false,
 
-      // ================= FUNGSI LOGIN & LOGOUT MANUAL =================
+      // ================= FUNGSI LOGIN & LOGOUT =================
       login: async (email, password) => {
         try {
           const response = await fetch(`${API_URL}/api/auth/Login`, {
@@ -87,7 +92,7 @@ export const useAuthStore = create<AuthState>()(
 
       logout: () => set({ isAuthenticated: false, user: null }),
 
-      // ================= MODUL CATEGORY EVENT =================
+      // ================= MODUL CATEGORY =================
       fetchCategories: async () => {
         try {
           const response = await fetch(`${API_URL}/categories`);
@@ -95,9 +100,7 @@ export const useAuthStore = create<AuthState>()(
             const data = await response.json();
             set({ categories: data });
           }
-        } catch (error) {
-          console.error("Error fetch kategori:", error);
-        }
+        } catch (error) { console.error(error); }
       },
 
       createCategory: async (name) => {
@@ -107,10 +110,7 @@ export const useAuthStore = create<AuthState>()(
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ name }),
           });
-          if (response.ok) {
-            await get().fetchCategories();
-            return true;
-          }
+          if (response.ok) { await get().fetchCategories(); return true; }
           return false;
         } catch { return false; }
       },
@@ -122,10 +122,7 @@ export const useAuthStore = create<AuthState>()(
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ name }),
           });
-          if (response.ok) {
-            await get().fetchCategories();
-            return true;
-          }
+          if (response.ok) { await get().fetchCategories(); return true; }
           return false;
         } catch { return false; }
       },
@@ -133,10 +130,7 @@ export const useAuthStore = create<AuthState>()(
       deleteCategory: async (id) => {
         try {
           const response = await fetch(`${API_URL}/categories/${id}`, { method: "DELETE" });
-          if (response.ok) {
-            await get().fetchCategories();
-            return true;
-          }
+          if (response.ok) { await get().fetchCategories(); return true; }
           return false;
         } catch { return false; }
       },
@@ -149,9 +143,7 @@ export const useAuthStore = create<AuthState>()(
             const data = await response.json();
             set({ speakers: data });
           }
-        } catch (error) {
-          console.error("Error fetch pembicara:", error);
-        }
+        } catch (error) { console.error(error); }
       },
 
       createSpeaker: async (data) => {
@@ -161,10 +153,7 @@ export const useAuthStore = create<AuthState>()(
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(data),
           });
-          if (response.ok) {
-            await get().fetchSpeakers();
-            return true;
-          }
+          if (response.ok) { await get().fetchSpeakers(); return true; }
           return false;
         } catch { return false; }
       },
@@ -176,10 +165,7 @@ export const useAuthStore = create<AuthState>()(
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(data),
           });
-          if (response.ok) {
-            await get().fetchSpeakers();
-            return true;
-          }
+          if (response.ok) { await get().fetchSpeakers(); return true; }
           return false;
         } catch { return false; }
       },
@@ -187,10 +173,7 @@ export const useAuthStore = create<AuthState>()(
       deleteSpeaker: async (id) => {
         try {
           const response = await fetch(`${API_URL}/pembicara/${id}`, { method: "DELETE" });
-          if (response.ok) {
-            await get().fetchSpeakers();
-            return true;
-          }
+          if (response.ok) { await get().fetchSpeakers(); return true; }
           return false;
         } catch { return false; }
       },
@@ -199,69 +182,51 @@ export const useAuthStore = create<AuthState>()(
       fetchEvents: async () => {
         set({ isLoading: true });
         try {
-          // FIXED: Menggunakan /events agar klop dengan pendaftaran route backend kalian
           const response = await fetch(`${API_URL}/events`);
           if (response.ok) {
             const data = await response.json();
             set({ events: data, isLoading: false });
-          } else {
-            set({ isLoading: false });
-          }
-        } catch (error) {
-          console.error("Error fetch event:", error);
-          set({ isLoading: false });
-        }
+          } else { set({ isLoading: false }); }
+        } catch (error) { set({ isLoading: false }); }
       },
 
       createEvent: async (data) => {
         try {
-          // FIXED: Diarahkan ke /events agar backend tidak membalas 404
           const response = await fetch(`${API_URL}/events`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(data),
           });
-          if (response.ok) {
-            await get().fetchEvents();
-            return true;
-          }
+          if (response.ok) { await get().fetchEvents(); return true; }
           return false;
-        } catch (error) {
-          console.error("Error create event:", error);
-          return false;
-        }
+        } catch { return false; }
       },
 
       updateEvent: async (id, data) => {
         try {
-          // FIXED: Menggunakan /events
           const response = await fetch(`${API_URL}/events/${id}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(data),
           });
-          if (response.ok) {
-            await get().fetchEvents();
-            return true;
-          }
+          if (response.ok) { await get().fetchEvents(); return true; }
           return false;
         } catch { return false; }
       },
 
       deleteEvent: async (id) => {
         try {
-          // FIXED: Menggunakan /events
           const response = await fetch(`${API_URL}/events/${id}`, { method: "DELETE" });
-          if (response.ok) {
-            await get().fetchEvents();
-            return true;
-          }
+          if (response.ok) { await get().fetchEvents(); return true; }
           return false;
         } catch { return false; }
       },
     }),
     {
       name: "auth-storage",
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true);
+      },
       partialize: (state) => ({
         isAuthenticated: state.isAuthenticated,
         user: state.user,
