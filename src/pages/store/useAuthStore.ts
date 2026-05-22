@@ -71,25 +71,25 @@ export const useAuthStore = create<AuthState>()(
 
       // ================= FUNGSI LOGIN & LOGOUT =================
       login: async (email, password) => {
-        try {
-          const response = await fetch(`${API_URL}/api/auth/Login`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ nim: email, password }),
-          });
+  try {
+    // UBAH JADI 'login' (huruf kecil) agar tidak 404
+    const response = await fetch(`${API_URL}/api/auth/login`, { 
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nim: email, password }),
+    });
 
-          if (response.ok) {
-            const data = await response.json();
-            set({ isAuthenticated: true, user: data.name || email });
-            return true;
-          }
-          return false;
-        } catch (error) {
-          console.error("Error login:", error);
-          return false;
-        }
-      },
-
+    if (response.ok) {
+      const data = await response.json();
+      set({ isAuthenticated: true, user: data.name || email });
+      return true;
+    }
+    return false;
+  } catch (error) {
+    console.error("Error login:", error);
+    return false;
+  }
+},
       logout: () => set({ isAuthenticated: false, user: null }),
 
       // ================= MODUL CATEGORY =================
