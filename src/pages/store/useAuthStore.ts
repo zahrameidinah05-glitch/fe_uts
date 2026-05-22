@@ -52,7 +52,7 @@ interface AuthState {
   deleteEvent: (id: string) => Promise<boolean>;
 }
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+const API_URL = "https://be-lctq.vercel.app";
 
 export const useAuthStore = create<AuthState>()(
   persist(
@@ -234,7 +234,7 @@ export const useAuthStore = create<AuthState>()(
 
       updateEvent: async (id, data) => {
         try {
-          
+          // FIXED: Menggunakan /events
           const response = await fetch(`${API_URL}/events/${id}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
