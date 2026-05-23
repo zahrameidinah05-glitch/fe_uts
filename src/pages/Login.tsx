@@ -6,12 +6,15 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "./store/useAuthStore"; 
 import Input from "../component/ui/Input";
 
-const schema = z.object({
-  email: z.string().email("Format email tidak valid").min(1, "Email wajib diisi"),
-  password: z.string().min(8, "Password minimal 8 karakter"),
-});
+type FormData = {
+  email: string;
+  password: string;
+};
 
-type FormData = z.infer<typeof schema>;
+const schema = z.object({
+  email: z.string().email("Format email tidak valid").min(1, "Email harus diisi"),
+  password: z.string().min(8, "Password minimal harus 8 karakter"),
+});
 
 export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
@@ -22,24 +25,26 @@ export default function Login() {
     resolver: zodResolver(schema),
   });
 
-  const onSubmit = async (data: FormData) => {
+  const onSubmit = (data: FormData) => {
     setIsLoading(true);
-
-    // Pengecekan Statis (Hardcoded)
-    if (data.email === "zahrameidinah05@gmail.com" && data.password === "24090001") {
-      const success = await login(data.email, data.password);
+    
+    setTimeout(async () => {
       setIsLoading(false);
       
-      if (success) {
+      // Logika pengecekan email dan password statis
+      if (
+        data.email === "zahrameidinah05@gmail.com" && 
+        data.password === "24090001"
+      ) {
         alert("Login Berhasil!");
-        navigate("/dashboard", { replace: true });
+        // PERBAIKAN: Masukkan data email DAN data password dipisah tanda koma
+        await login(data.email, data.password); 
+        navigate("/dashboard");
       } else {
-        alert("Terjadi kesalahan pada server.");
+        // Jika tidak cocok, tampilkan pesan error
+        alert("Email atau password salah! Silakan coba lagi.");
       }
-    } else {
-      setIsLoading(false);
-      alert("Email atau password salah!");
-    }
+    }, 2000);
   };
 
   return (
@@ -51,20 +56,20 @@ export default function Login() {
 
       <form onSubmit={handleSubmit(onSubmit)} className="w-full space-y-6" noValidate>
         <Input 
-          label="Email (Akun Institusi)" 
+          label="Email" 
           name="email" 
           register={register} 
           error={errors.email?.message}
-          placeholder="email@mhs.poltekharber.ac.id"
+          placeholder="email@anda.com"
         />
 
         <Input 
-          label="Password (Minimal 8 karakter)" 
+          label="Password" 
           name="password" 
           type="password" 
           register={register} 
           error={errors.password?.message}
-          placeholder="********"
+          placeholder="........"
         />
 
         <div className="pt-2 flex flex-col gap-4">
@@ -75,6 +80,18 @@ export default function Login() {
           >
             {isLoading ? "Memproses..." : "Login"}
           </button>
+
+          <button 
+            type="button"
+            onClick={() => navigate("/")}
+            className="w-full bg-white text-[#7B1D3F] py-4 rounded-xl font-bold border-2 border-[#7B1D3F] hover:bg-rose-50 transition-all shadow-sm"
+          >
+            Kembali ke Beranda
+          </button>
+        </div>
+
+        <div className="text-sm text-center text-slate-500 pt-2">
+          Belum punya akun? <Link to="/register" className="text-[#7B1D3F] font-bold hover:underline">Daftar</Link>
         </div>
       </form>
     </div>

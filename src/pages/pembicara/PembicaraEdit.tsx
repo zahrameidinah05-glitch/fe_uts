@@ -1,48 +1,70 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useAuthStore } from "../store/useAuthStore"; // Sesuaikan path ini
+
+// Langsung tentukan URL backend di sini agar tidak pusing
+const BACKEND_URL = "https://be-lctq.vercel.app";
 
 export const PembicaraEdit = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { speakers, updateSpeaker, fetchSpeakers } = useAuthStore();
 
   const [formData, setFormData] = useState({
     name: "",
-    job: "",
+    job: "", // Pastikan nama field ini sama dengan di database/backend kamu
   });
 
   const [isLoading, setIsLoading] = useState(false);
+  const [isFetching, setIsFetching] = useState(true);
 
-  // 1. Cari data pembicara yang mau diedit berdasarkan ID dari URL
-  const pembicaraLama = speakers?.find((s) => String(s.id) === String(id));
-
+  // 1. Ambil data langsung saat halaman dibuka
   useEffect(() => {
-    fetchSpeakers(); // Memastikan data pembicara terbaru ada di store
-    if (pembicaraLama) {
-      setFormData({
-        name: pembicaraLama.name,
-        job: pembicaraLama.job,
+    if (!id) return;
+
+    fetch(`${BACKEND_URL}/pembicara/${id}`)
+      .then((res) => {
+        if (!res.ok) throw new Error("Gagal ambil data");
+        return res.json();
+      })
+      .then((data) => {
+        setFormData({
+          name: data.name,
+          job: data.job, // Sesuaikan dengan kolom database kamu
+        });
+        setIsFetching(false);
+      })
+      .catch((err) => {
+        console.error(err);
+        alert("Gagal memuat data.");
+        navigate("/dashboard/pembicara");
       });
-    }
-  }, [pembicaraLama, fetchSpeakers]);
+  }, [id, navigate]);
 
   // 2. Fungsi simpan perubahan
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!id) return;
-    
     setIsLoading(true);
-    const sukses = await updateSpeaker(id, formData);
-    setIsLoading(false);
 
-    if (sukses) {
-      alert("Data pembicara berhasil diupdate!");
-      navigate("/dashboard/pembicara"); // Pastikan path ini benar
-    } else {
-      alert("Gagal update data pembicara. Cek koneksi backend.");
+    try {
+      const response = await fetch(`${BACKEND_URL}/pembicara/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+
+      if (response.ok) {
+        alert("Data berhasil diupdate!");
+        navigate("/dashboard/pembicara");
+      } else {
+        throw new Error("Gagal menyimpan ke server");
+      }
+    } catch (error) {
+      alert("Error: Pastikan backend https://be-lctq.vercel.app aktif.");
+    } finally {
+      setIsLoading(false);
     }
   };
+
+  if (isFetching) return <div className="p-10 text-center">Memuat data...</div>;
 
   return (
     <div className="max-w-xl mx-auto p-6 bg-white rounded-lg shadow-md mt-10">

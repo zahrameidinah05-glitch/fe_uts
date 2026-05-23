@@ -1,141 +1,136 @@
-import { useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { useAuthStore } from "../store/useAuthStore"; // 1. Impor store tunggalmu
+import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 
-function Avatar({ name }: { name: string }) {
-  const initials = name
-    .split(" ")
-    .map((n) => n[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
-
-  return (
-    <div className="w-8 h-8 rounded-full bg-gradient-to-r from-[#7B1D3F] to-[#c9395e] text-white text-xs font-bold flex items-center justify-center">
-      {initials}
-    </div>
-  );
+// Membuat interface yang aman untuk data relasi baru
+interface PembicaraData {
+  id: number;
+  name: string;
+  topik: string;
+  events: {
+    id: number;
+    name: string;
+  }[]; // Diubah menjadi array objek karena satu pembicara bisa mengisi banyak event
 }
 
 export default function PembicaraIndex() {
-  const navigate = useNavigate();
+  const [pembicara, setPembicara] = useState<PembicaraData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // 2. Ambil data global speakers dan fungsi hapus dari Zustand store
-  const speakers = useAuthStore((s) => s.speakers);
-  const deleteSpeaker = useAuthStore((s) => s.deleteSpeaker);
+  // 1. Fungsi Fetch Data Pembicara (MENGGUNAKAN URL BACKEND VERCEL)
+  const fetchData = async () => {
+    try {
+      const res = await fetch("https://be-web2.vercel.app/pembicara");
+      const data = await res.json();
+      setPembicara(data);
+    } catch (err) {
+      console.error("Gagal ambil data:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-  // 3. Tarik data murni pembicara dari database Supabase saat halaman dibuka
   useEffect(() => {
-    useAuthStore.getState().fetchSpeakers();
+    fetchData();
   }, []);
 
-  const handleDelete = async (id: string, name: string) => {
-    if (confirm(`Apakah kamu yakin ingin menghapus pembicara "${name}"?`)) {
-      const sukses = await deleteSpeaker(id);
-      if (!sukses) {
-        alert("Gagal menghapus data pembicara!");
+  // 2. Fungsi Hapus dengan penanganan catching error P2003 (MENGGUNAKAN URL BACKEND VERCEL)
+  const handleDelete = async (id: number) => {
+    if (!confirm("Apakah Anda yakin ingin menghapus pembicara ini?")) return;
+
+    try {
+      const res = await fetch(`https://be-web2.vercel.app/pembicara/${id}`, {
+        method: "DELETE",
+      });
+      
+      const result = await res.json();
+
+      if (res.ok) {
+        // Update state lokal agar langsung hilang dari list tanpa hit ulang API refresh
+        setPembicara(pembicara.filter((p) => p.id !== id));
+        alert("Pembicara berhasil dihapus!");
+      } else {
+        // Menampilkan pesan proteksi: "Harus hapus event yang diisi oleh pembicara ini dulu..."
+        alert(result.message || "Gagal menghapus pembicara");
       }
+    } catch (err) {
+      console.error("Error:", err);
+      alert("Terjadi kesalahan koneksi ke server.");
     }
   };
 
   return (
-    <div className="px-7 py-8 max-w-5xl mx-auto">
-
-      {/* HEADER */}
-      <div className="flex justify-between items-start mb-7">
+    <div className="px-7 py-8 max-w-5xl mx-auto font-sans">
+      <div className="flex justify-between items-center mb-8">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="w-4 h-0.5 bg-[#7B1D3F] rounded-full inline-block" />
-            <span className="text-[10px] font-semibold text-[#7B1D3F] tracking-widest uppercase">
-              Manajemen
-            </span>
-          </div>
-          <h1 className="text-2xl font-bold text-[#1a0a10] tracking-tight">Pembicara</h1>
-          <p className="text-sm text-gray-400 mt-1">Kelola pembicara event Invofest</p>
+          <span className="text-[10px] font-semibold text-[#7B1D3F] tracking-widest uppercase">Manajemen</span>
+          <h1 className="text-3xl font-bold text-[#1a0a10] tracking-tight">Pembicara</h1>
+          <p className="text-sm text-gray-400 mt-1">Kelola dan pantau semua daftar pembicara event</p>
         </div>
-
-        <Link
-          to="/dashboard/pembicara/create"
-          className="flex items-center gap-1.5 bg-[#7B1D3F] hover:bg-[#9e2550] text-white text-sm font-semibold px-4 py-2.5 rounded-lg transition-colors shadow-sm"
+        <Link 
+          to="/dashboard/pembicara/create" 
+          className="bg-[#7B1D3F] hover:bg-[#9e2550] text-white text-sm font-semibold px-5 py-2.5 rounded-xl shadow-md transition-all"
         >
-          <span className="text-base leading-none">+</span>
-          Tambah Pembicara
+          + Tambah Pembicara
         </Link>
       </div>
 
-      {/* TABLE CARD */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-        <table className="w-full border-collapse">
-          <thead>
-            <tr className="bg-gray-50 border-b border-gray-100">
-              {["No", "Pembicara", "Pekerjaan / Instansi", "Aksi"].map((h) => (
-                <th
-                  key={h}
-                  className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 px-4 py-2.5 text-left whitespace-nowrap"
-                >
-                  {h}
-                </th>
-              ))}
-            </tr>
-          </thead>
-
-          <tbody>
-            {speakers.map((item: any, index) => (
-              <tr
-                key={item.id}
-                className="border-b border-gray-50 hover:bg-rose-50/40 transition-colors"
-              >
-                <td className="px-4 py-3.5 text-sm text-gray-300 w-10">{index + 1}</td>
-
-                <td className="px-4 py-3.5">
-                  <div className="flex items-center gap-2.5">
-                    <Avatar name={item.name} />
-                    <span className="text-sm font-semibold text-[#1a0a10]">{item.name}</span>
-                  </div>
-                </td>
-
-                <td className="px-4 py-3.5">
-                  <span className="text-xs font-medium bg-rose-50 text-[#7B1D3F] px-2.5 py-1 rounded-full">
-                    {/* FIX UTAMA: Memanggil properti item.role atau item.job sebagai cadangan data lama */}
-                    {item.role || item.job || "-"}
-                  </span>
-                </td>
-
-                <td className="px-4 py-3.5">
-                  <div className="flex gap-2">
-                    <button 
-                      onClick={() => navigate(`/dashboard/pembicara/edit/${item.id}`)}
-                      className="text-xs font-semibold px-3 py-1.5 rounded-md border border-yellow-300 bg-yellow-50 text-yellow-700 hover:bg-yellow-100 transition-colors cursor-pointer"
-                    >
-                      Edit
-                    </button>
-                    <button 
-                      onClick={() => handleDelete(item.id, item.name)}
-                      className="text-xs font-semibold px-3 py-1.5 rounded-md border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 transition-colors cursor-pointer"
-                    >
-                      Hapus
-                    </button>
-                  </div>
-                </td>
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden p-6">
+        {isLoading ? (
+          <p className="text-center py-10 text-gray-400 text-sm">Memuat data pembicara...</p>
+        ) : pembicara.length === 0 ? (
+          <p className="text-center py-10 text-gray-400 text-sm">Belum ada pembicara yang terdaftar.</p>
+        ) : (
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="text-gray-400 text-xs uppercase tracking-wider border-b">
+                <th className="pb-4">Nama</th>
+                <th className="pb-4">Topik Keahlian</th>
+                <th className="pb-4">Event yang Diisi</th>
+                <th className="pb-4 text-center w-40">Aksi</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-
-        {/* Empty state jika database Supabase kosong */}
-        {speakers.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-14 gap-2 bg-white">
-            <span className="text-3xl">🎤</span>
-            <p className="text-sm text-gray-400 font-medium">Belum ada data pembicara</p>
-            <p className="text-xs text-gray-300">Tambahkan pembicara pertama kamu</p>
-          </div>
+            </thead>
+            <tbody className="text-sm text-gray-700">
+              {pembicara.map((p) => (
+                <tr key={p.id} className="border-b last:border-0 hover:bg-gray-50 transition-colors">
+                  <td className="py-4 font-semibold text-gray-900">{p.name}</td>
+                  <td className="py-4 text-gray-600">{p.topik}</td>
+                  
+                  {/* Rendering dinamis jika pembicara mengisi lebih dari satu atau belum mengisi event sama sekali */}
+                  <td className="py-4">
+                    {p.events && p.events.length > 0 ? (
+                      <div className="flex flex-wrap gap-1.5 max-w-[250px]">
+                        {p.events.map((ev) => (
+                          <span key={ev.id} className="bg-blue-50 text-blue-700 text-[11px] font-medium px-2 py-0.5 rounded border border-blue-100" title={ev.name}>
+                            {ev.name}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-gray-400 text-xs italic">Belum ada jadwal event</span>
+                    )}
+                  </td>
+                  
+                  <td className="py-4">
+                    <div className="flex justify-center items-center gap-4">
+                      <Link 
+                        to={`/dashboard/pembicara/edit/${p.id}`} 
+                        className="text-blue-600 hover:text-blue-800 font-semibold text-xs transition-colors"
+                      >
+                        Edit
+                      </Link>
+                      <button 
+                        onClick={() => handleDelete(p.id)} 
+                        className="text-red-600 hover:text-red-800 font-semibold text-xs transition-colors"
+                      >
+                        Hapus
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         )}
-
-        <div className="px-4 py-3 border-t border-gray-50 bg-gray-50/30">
-          <span className="text-xs text-gray-400">
-            Menampilkan <b>{speakers.length}</b> pembicara terdaftar
-          </span>
-        </div>
       </div>
     </div>
   );

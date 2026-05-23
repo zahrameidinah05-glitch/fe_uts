@@ -1,27 +1,30 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 
+// URL Backend Vercel kamu
+const BACKEND_URL = "https://be-lctq.vercel.app";
+
 export default function CategoryEdit() {
-  const { id } = useParams<{ id: string }>(); // Mengambil ID dari URL (misal angka 1)
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   
   const [name, setName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
 
-  // 1. AMBIL DATA KATEGORI LAMA DARI BACKEND SAAT HALAMAN DIBUKA
+  // 1. AMBIL DATA DARI BACKEND
   useEffect(() => {
     const fetchCategoryData = async () => {
       try {
-        const response = await fetch(`http://localhost:3000/categories/${id}`);
-        if (!response.ok) throw new Error("Gagal mengambil data kategori");
+        const response = await fetch(`${BACKEND_URL}/categories/${id}`);
+        if (!response.ok) throw new Error("Gagal mengambil data");
         
         const data = await response.json();
-        setName(data.name); // Masukkan nama lama ke dalam input form
+        setName(data.name);
       } catch (error) {
         console.error(error);
-        alert("Kategori tidak ditemukan atau server bermasalah.");
-        navigate("/dashboard/kategori"); // Kembalikan ke halaman daftar jika eror
+        alert("Gagal memuat data. Pastikan backend aktif.");
+        navigate("/dashboard/kategori");
       } finally {
         setIsFetching(false);
       }
@@ -30,27 +33,24 @@ export default function CategoryEdit() {
     if (id) fetchCategoryData();
   }, [id, navigate]);
 
-  // 2. LOGIKA KIRIM PERUBAHAN DATA (PUT) KE BACKEND PAS DIKLIK SIMPAN
+  // 2. KIRIM PERUBAHAN KE BACKEND
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return alert("Nama kategori tidak boleh kosong!");
 
     setIsLoading(true);
     try {
-      const response = await fetch(`http://localhost:3000/categories/${id}`, {
+      const response = await fetch(`${BACKEND_URL}/categories/${id}`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name }),
       });
 
       if (!response.ok) throw new Error("Gagal mengupdate database");
 
       alert("Kategori berhasil diperbarui!");
-      navigate("/dashboard/kategori"); // Kembali ke daftar kategori setelah sukses
+      navigate("/dashboard/kategori");
     } catch (error) {
-      console.error(error);
       alert("Gagal memperbarui kategori, silakan coba lagi.");
     } finally {
       setIsLoading(false);
@@ -58,31 +58,21 @@ export default function CategoryEdit() {
   };
 
   if (isFetching) {
-    return (
-      <div className="flex justify-center items-center h-48">
-        <p className="text-gray-500 animate-pulse text-sm">Sedang memuat data kategori...</p>
-      </div>
-    );
+    return <div className="flex justify-center items-center h-48 text-gray-500">Memuat data...</div>;
   }
 
   return (
     <div className="w-full max-w-xl mx-auto bg-white p-8 rounded-xl shadow-md border border-slate-100 mt-10">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[#7B1D3F]">Edit Kategori</h1>
-        <p className="text-sm text-gray-400 mt-1">Ubah nama kategori sesuai kebutuhan proyek kelompok kalian</p>
-      </div>
-
+      <h1 className="text-2xl font-bold text-[#7B1D3F] mb-6">Edit Kategori</h1>
+      
       <form onSubmit={handleUpdate} className="space-y-6">
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
-            Nama Kategori
-          </label>
+          <label className="block text-sm font-semibold text-gray-700 mb-2">Nama Kategori</label>
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Masukkan nama kategori baru..."
-            className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#7B1D3F] focus:border-transparent transition-all"
+            className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#7B1D3F] outline-none transition-all"
             required
           />
         </div>
@@ -95,7 +85,6 @@ export default function CategoryEdit() {
           >
             {isLoading ? "Menyimpan..." : "Simpan Perubahan"}
           </button>
-
           <button
             type="button"
             onClick={() => navigate("/dashboard/kategori")}
